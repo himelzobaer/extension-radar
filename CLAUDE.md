@@ -185,7 +185,8 @@ scripts/setup_sheet.py সব tab আর header auto তৈরি করবে�
 
 ## 12. Current Status
 
-Phase: 2 code সম্পন্ন (2026-10-24)। প্রথম আসল weekly snapshot + diff হবে সোমবার 2026-10-26 এর Actions run এ।
+Phase: 2 সম্পন্ন (2026-10-24)। প্রথম আসল snapshot user এর অনুরোধে 2026-10-24 এ local থেকে চালানো হইছে (978 ID: ok 931, removed 47, error 0; STALE alert 59; related থেকে +300 ID, Chrome_IDs এখন 1278)। তাই সোমবার 2026-10-26 এর Actions run এ snapshot guard এর কারণে skip হবে। পরের snapshot 2026-11-02, তখন প্রথম REMOVED/RATING_DROP/DEV_CHANGE আসবে।
+প্রথম analysis: 47টা removed এর সবগুলাই GitHub README link থেকে আসা (MV2 graveyard)। README PRO version এ নতুন করে লেখা হইছে (schema, flags, ER diagram)।
 Repo: github.com/himelzobaer/extension-radar (public)। Secrets: GOOGLE_SERVICE_ACCOUNT_JSON, SHEET_ID। Telegram: Script Properties এ বসানো, hourly trigger।
 
 শেষ কাজ (2026-10-24):
@@ -205,5 +206,6 @@ Known issues:
 - লোকাল Python 3.10, CI তে 3.11। Code দুইটাতেই চলে।
 - FIREFOX_ONLY নামের মিল দিয়ে ধরা হয়, তাই কিছু ভুল থাকে। uBlock Origin miss হয় কারণ Chrome এ একই নামের copycat আছে। NoScript, Trusted Shops, Copyfish, LanguageTool false positive। Heuristic আর বাড়ানো হবে না।
 - CWS এ official API নাই। Search আর detail দুইটাতেই canary আছে (Dark Reader), parse fail করলে run থামে বা item "unknown" হয়।
+- অনেক Chrome listing এ publisher link নাই, তাই Snapshots এর developer খালি থাকে (যেমন EndNote Click, PDF Viewer)। ওইগুলাতে DEV_CHANGE ধরা যাবে না, তবে ভুল flag ও হবে না। Parser এ developer এর বিকল্প উৎস খোঁজা বাকি।
 - Related ID থেকে প্রতি run এ সর্বোচ্চ 300টা নতুন ID যোগ হয়, তাই 2000 এ পৌঁছাতে প্রায় 4 সপ্তাহ লাগবে।
 - Snapshots tab প্রতি সপ্তাহে বড় হয়। Diff পুরা tab পড়ে, তাই কয়েক মাস পর পুরানো row archive করতে হবে।
