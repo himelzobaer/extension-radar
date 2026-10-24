@@ -1,0 +1,52 @@
+name: Extension Radar
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"   # প্রতি সোমবার 03:00 UTC (সপ্তাহে একবার)
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "Steps to run (comma separated)"
+        default: "github,firefox,scoring"
+      force:
+        description: "Ignore the firefox once-a-week guard"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: radar
+  cancel-in-progress: false
+
+jobs:
+  radar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Tests
+        run: python -m pytest -q
+
+      - name: Run pipeline
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          ONLY: ${{ github.event.inputs.only || 'github,firefox,scoring' }}
+          FORCE: ${{ github.event.inputs.force || 'false' }}
+        run: |
+          if [ "$FORCE" = "true" ]; then
+            python -m radar.main --only "$ONLY" --force
+          else
+            python -m radar.main --only "$ONLY"
+          fi

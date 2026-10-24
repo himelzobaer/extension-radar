@@ -1,0 +1,63 @@
+# Extension Opportunity Radar config.
+# সব threshold, query আর limit এখানে। Code এ hardcode করা হয় না।
+
+http:
+  timeout_seconds: 30
+  max_retries: 4            # exponential backoff সহ সর্বোচ্চ retry
+  backoff_base_seconds: 2   # 2, 4, 8, 16 ...
+  user_agent: "ExtensionOpportunityRadar/1.0 (+https://github.com)"
+
+github:
+  api_base: "https://api.github.com"
+  queries:
+    - "topic:chrome-extension stars:>300 pushed:<2024-10-01 license:mit"
+    - "topic:chrome-extension stars:>300 pushed:<2024-10-01 license:apache-2.0"
+    - "topic:browser-extension stars:>300 archived:true"
+  per_page: 100
+  max_pages_per_query: 10          # GitHub search সর্বোচ্চ 1000 result দেয়
+  search_delay_seconds: 2.5        # search API: 30 request/min (token সহ)
+  core_delay_seconds: 0.3          # contents/trees API call এর মাঝে
+  manifest_ignore_dirs: ["node_modules", "test", "tests", "dist-firefox", "vendor"]
+  manifest_deprioritize_dirs: ["firefox", "safari", "edge"]   # Chrome manifest আগে দেখবে
+  max_repos: 1000                  # এক run এ সর্বোচ্চ কয়টা repo enrich করবে
+
+firefox:
+  api_base: "https://addons.mozilla.org/api/v5"
+  max_addons: 500
+  page_size: 50
+  lang: "en-US"
+  api_delay_seconds: 1.0
+  min_days_between_runs: 6         # Chrome Web Store scrape সপ্তাহে একবারের বেশি না
+
+chrome_search:
+  search_url: "https://chromewebstore.google.com/search/{query}?hl=en"
+  canary_query: "dark reader"      # এটা result না দিলে ধরে নিবো parser ভাঙছে
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
+  delay_min_seconds: 2.0           # প্রতিটা request এর মাঝে random delay
+  delay_max_seconds: 5.0
+  match_threshold: 0.88            # নাম মিলের ratio (0-1)
+  max_results_to_compare: 10
+  strip_words: ["for", "chrome", "firefox", "extension", "addon", "add", "on", "the", "browser", "a", "an", "and"]
+  variant_words: ["lite", "mv3", "light"]   # "uBlock Origin Lite" আসল extension না, match ধরবে না
+  # নামের বাড়তি শব্দ যেগুলা আলাদা product বোঝায় না ("FoxyProxy Standard" = "FoxyProxy")
+  generic_words: ["standard", "pro", "plus", "free", "official", "app", "com", "new", "edition",
+                  "adblocker", "blocker", "ad", "ads", "privacy", "youtube", "vpn", "proxy", "tool", "tools"]
+
+scoring:
+  min_users: 10000
+  signal_flags: ["STALE", "REMOVED", "RATING_DROP"]
+  permissive_licenses: ["mit", "apache-2.0", "bsd-2-clause", "bsd-3-clause", "isc", "unlicense", "mpl-2.0", "0bsd", "cc0-1.0", "zlib"]
+  copyleft_licenses: ["gpl-2.0", "gpl-3.0", "agpl-3.0", "lgpl-2.1", "lgpl-3.0", "gpl-2.0-only", "gpl-3.0-only", "gpl-2.0-or-later", "gpl-3.0-or-later", "agpl-3.0-only", "agpl-3.0-or-later", "lgpl-3.0-only", "lgpl-2.1-only"]
+
+alerts:
+  # Phase 1 এ যেসব নতুন item Alerts tab এ যাবে
+  github_mv2_flag: "MV2_FORK"           # manifest_version 2 + fork-friendly license
+  firefox_only_flag: "FIREFOX_ONLY"
+  firefox_only_min_users: 10000
+
+# Phase 2 (এখনো ব্যবহার হয় না)
+diff:
+  rating_drop_threshold: 0.5
+  stale_min_months: 12
+  stale_max_months: 24
+  stale_min_users: 10000
