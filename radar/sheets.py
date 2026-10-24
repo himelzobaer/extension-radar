@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable
 
 log = logging.getLogger(__name__)
@@ -14,12 +14,13 @@ log = logging.getLogger(__name__)
 TABS: dict[str, list[str]] = {
     "Master": [
         "key", "source", "name", "url", "users_or_stars", "rating", "last_updated",
-        "license", "manifest_version", "flags", "first_seen", "last_seen",
+        "license", "manifest_version", "flags", "first_seen", "last_seen", "chrome_id",
     ],
     "Snapshots": [
         "snapshot_key", "date", "ext_id", "name", "users", "rating", "rating_count",
-        "last_updated", "version", "developer", "status",
+        "last_updated", "version", "developer", "status", "developer_id", "error",
     ],
+    "Chrome_IDs": ["ext_id", "name", "source", "first_seen", "active"],
     "GitHub_Repos": [
         "full_name", "name", "url", "stars", "forks", "last_push", "license", "archived",
         "open_issues", "description", "manifest_version", "manifest_path", "cws_link",
@@ -32,7 +33,7 @@ TABS: dict[str, list[str]] = {
     ],
     "Alerts": [
         "alert_key", "flag_type", "date", "source", "item_key", "name", "users", "link",
-        "sent", "sent_at",
+        "sent", "sent_at", "detail",
     ],
     "Scored": [
         "key", "source", "name", "link", "users_10k_plus", "signal_flags", "license",
@@ -161,6 +162,19 @@ class SheetClient:
         log.info("%s: %d rows written (%d new)", name, len(table), len(new_keys))
         return new_keys
 
+    def append_new(self, name: str, rows: list[dict[str, Any]]) -> int:
+        """Append only rows whose key (first column) is not in the tab yet.
+
+        Reads just the key column, so it stays cheap on big append-only tabs.
+        Returns how many rows were appended.
+        """
+        ws = self.worksheet(name)
+        header = ws.row_values(1) or TABS[name]
+        keys = set(ws.col_values(1)[1:])
+        new = [r for r in rows if str(r.get(header[0], "")) and str(r[header[0]]) not in keys]
+        self.append(name, new)
+        return len(new)
+
     def append(self, name: str, rows: list[dict[str, Any]]) -> None:
         """Append rows in header order."""
         if not rows:
@@ -193,3 +207,12 @@ class SheetClient:
             if latest is None or ts > latest:
                 latest = ts
         return latest
+
+    def ran_within(self, module: str, days: float) -> bool:
+        """True if the module has a Logs entry in the last `days` days (scrape guard)."""
+        last = self.last_run(module)
+        if last is None:
+            return False
+        if last.tzinfo is None:
+            last = last.replace(tzinfo=timezone.utc)
+        return datetime.now(timezone.utc) - last < timedelta(days=days)

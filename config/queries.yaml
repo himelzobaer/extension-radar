@@ -55,7 +55,80 @@ alerts:
   firefox_only_flag: "FIREFOX_ONLY"
   firefox_only_min_users: 10000
 
-# Phase 2 (এখনো ব্যবহার হয় না)
+# Phase 2: Chrome Web Store (Module C, D)
+# Request এর মাঝে delay আর User-Agent আসে chrome_search থেকে।
+chrome:
+  detail_url: "https://chromewebstore.google.com/detail/{id}?hl=en"
+  category_url: "https://chromewebstore.google.com/category/extensions/{slug}?hl=en"
+  max_ids: 2000                     # Chrome_IDs এ সর্বোচ্চ কয়টা ID track করবে
+  min_days_between_runs: 6          # snapshot সপ্তাহে একবারের বেশি না
+  canary_id: "eimadpbcbfnmbkopoojfekhnkhdbieeh"   # Dark Reader: parse না হলে পুরা run থামবে
+  removed_url_marker: "/empty-title/"             # সরানো extension এই URL এ redirect হয়
+  add_related_ids: true             # detail page এর related extension Chrome_IDs এ যোগ করবে
+  max_new_related_per_run: 300
+  write_batch_size: 100             # এতগুলা snapshot হলে Sheet এ লিখে ফেলবে (crash হলেও data থাকবে)
+  categories:
+    - productivity/communication
+    - productivity/developer
+    - productivity/education
+    - productivity/tools
+    - productivity/workflow
+    - lifestyle/art
+    - lifestyle/entertainment
+    - lifestyle/games
+    - lifestyle/household
+    - lifestyle/fun
+    - lifestyle/news
+    - lifestyle/shopping
+    - lifestyle/social
+    - lifestyle/travel
+    - lifestyle/well_being
+    - make_chrome_yours/accessibility
+    - make_chrome_yours/functionality
+    - make_chrome_yours/privacy
+  seed_keywords:
+    - ad blocker
+    - popup blocker
+    - dark mode
+    - tab manager
+    - session manager
+    - screenshot
+    - screen recorder
+    - video downloader
+    - youtube
+    - password manager
+    - vpn
+    - proxy
+    - cookie
+    - user agent switcher
+    - json viewer
+    - color picker
+    - font finder
+    - web clipper
+    - note taking
+    - reader mode
+    - translate
+    - dictionary
+    - grammar
+    - pdf
+    - download manager
+    - auto refresh
+    - mouse gestures
+    - keyboard shortcuts
+    - new tab
+    - bookmark manager
+    - history
+    - privacy
+    - tracker blocker
+    - script blocker
+    - userscript
+    - css editor
+    - seo
+    - scraper
+    - email tracker
+    - coupon
+
+# Phase 2: Module E
 diff:
   rating_drop_threshold: 0.5
   stale_min_months: 12

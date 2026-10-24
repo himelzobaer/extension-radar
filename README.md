@@ -2,11 +2,16 @@
 
 Chrome extension rebuild/flip এর সুযোগ খোঁজার automated pipeline। পুরা stack free tier এ চলে: GitHub Actions, Google Sheets, Apps Script আর Telegram।
 
-**Phase 1 (এখন যা আছে):**
+**Phase 1:**
 - **Module A, GitHub:** abandoned আর MV2 extension repo খোঁজে (`radar/github_module.py`)
 - **Module B, Firefox:** জনপ্রিয় Firefox add-on গুলোর মধ্যে কোনগুলা Chrome Web Store এ নাই সেটা বের করে (`radar/firefox_module.py`)
 - **Scoring:** auto চেক করে, আর manual কলাম খালি রাখে (`radar/scoring.py`)
 - **Telegram alert:** নতুন alert এর summary পাঠায় (`apps_script/telegram_alert.gs`)
+
+**Phase 2:**
+- **Module C, Chrome Seeder:** category page, keyword search, GitHub README আর Firefox match থেকে extension ID জোগাড় করে Chrome_IDs tab বানায় (`radar/chrome_seeder.py`)
+- **Module D, Weekly Snapshot:** প্রতিটা ID এর store page থেকে users, rating, version, developer নিয়ে Snapshots tab এ রাখে। প্রতিটা page এর related extension থেকে নতুন ID যোগ করে, `chrome.max_ids` পর্যন্ত (`radar/chrome_snapshot.py`)
+- **Module E, Diff Engine:** আগের সপ্তাহের snapshot এর সাথে তুলনা করে REMOVED, RATING_DROP, DEV_CHANGE আর STALE flag দেয় (`radar/diff_engine.py`)
 
 ---
 
@@ -52,7 +57,10 @@ Token না দিলেও চলবে, তবে search অনেক ধী�
 python -m radar.github_module      # শুধু Module A
 python -m radar.firefox_module     # শুধু Module B (সপ্তাহে একবার; --force দিলে guard ignore করবে)
 python -m radar.scoring            # শুধু scoring
-python -m radar.main               # সব একসাথে
+python -m radar.chrome_seeder      # Module C: একবার চালান (পরে মাঝে মাঝে)
+python -m radar.chrome_snapshot    # Module D (সপ্তাহে একবার; --force, --limit 20 test এর জন্য)
+python -m radar.diff_engine        # Module E
+python -m radar.main               # সব একসাথে (seed বাদে)
 python -m radar.main --only github,scoring
 ```
 
@@ -98,5 +106,14 @@ python -m radar.main --only github,scoring
 
 - `MV2_FORK`: repo টা এখনো Manifest V2 তে, আর license fork করার অনুমতি দেয় (MIT/Apache/GPL…)
 - `FIREFOX_ONLY`: Firefox এ জনপ্রিয় (≥10K user) কিন্তু Chrome এ নামের মিল পাওয়া যায়নি
+
+## Alert flags (Phase 2, Chrome)
+
+- `REMOVED`: আগের সপ্তাহে store এ ছিল, এখন নাই (page `empty-title` এ redirect হয়)
+- `RATING_DROP`: rating `diff.rating_drop_threshold` (0.5) এর বেশি কমছে
+- `DEV_CHANGE`: developer এর নাম বা publisher ID বদলাইছে। এটা সাধারণত extension বিক্রি হওয়ার signal
+- `STALE`: 12-24 মাস ধরে update হয়নি, আর users 10K এর বেশি
+
+প্রথম snapshot এর পর শুধু STALE আসবে, কারণ বাকি তিনটা flag এর জন্য দুই সপ্তাহের snapshot লাগে।
 
 `FIREFOX_ONLY` নামের মিল দিয়ে ধরা হয়, তাই কিছু false positive আসতে পারে। `chrome_match` কলামে সবচেয়ে কাছের Chrome result দেখা যায়, সেটা দেখে manual যাচাই করবেন।

@@ -29,6 +29,9 @@ class FakeWorksheet:
     def row_values(self, n: int) -> list[str]:
         return [str(c) for c in self.values[n - 1]] if len(self.values) >= n else []
 
+    def col_values(self, n: int) -> list[str]:
+        return [str(r[n - 1]) if len(r) >= n else "" for r in self.values]
+
     def update(self, values: list[list[Any]], range_name: str = "A1", **_: Any) -> None:
         assert range_name == "A1"
         if len(values) == 1 and self.values:

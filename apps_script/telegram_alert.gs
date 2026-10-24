@@ -35,6 +35,7 @@ function sendNewAlerts() {
     var header = values[0];
     var col = {};
     header.forEach(function (h, i) { col[h] = i; });
+    var hasDetail = col.detail !== undefined;
     ['flag_type', 'name', 'users', 'link', 'sent', 'sent_at'].forEach(function (c) {
       if (col[c] === undefined) throw new Error('Alerts tab missing column ' + c);
     });
@@ -44,7 +45,8 @@ function sendNewAlerts() {
       var sent = String(values[r][col.sent]).toUpperCase();
       if (sent !== 'TRUE' && values[r][col.flag_type]) {
         pending.push({ row: r + 1, flag: String(values[r][col.flag_type]), name: String(values[r][col.name]),
-                       users: Number(values[r][col.users]) || 0, link: String(values[r][col.link]) });
+                       users: Number(values[r][col.users]) || 0, link: String(values[r][col.link]),
+                       detail: hasDetail ? String(values[r][col.detail] || '') : '' });
       }
     }
     if (pending.length === 0) return;
@@ -74,7 +76,7 @@ function buildMessage_(pending) {
     lines.push('', '<b>Top ' + top.length + ' ' + esc_(flag) + '</b>');
     top.forEach(function (p, i) {
       lines.push((i + 1) + '. <a href="' + esc_(p.link) + '">' + esc_(p.name) + '</a> (' +
-                 p.users.toLocaleString('en-US') + ')');
+                 p.users.toLocaleString('en-US') + ')' + (p.detail ? ' ' + esc_(p.detail) : ''));
     });
   });
   var text = lines.join('\n');

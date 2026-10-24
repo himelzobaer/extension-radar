@@ -6,10 +6,10 @@ on:
   workflow_dispatch:
     inputs:
       only:
-        description: "Steps to run (comma separated)"
-        default: "github,firefox,scoring"
+        description: "Steps to run (comma separated; seed = Chrome ID baseline)"
+        default: "github,firefox,snapshot,diff,scoring"
       force:
-        description: "Ignore the firefox once-a-week guard"
+        description: "Ignore the once-a-week scrape guards"
         type: boolean
         default: false
 
@@ -23,7 +23,7 @@ concurrency:
 jobs:
   radar:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 240
     steps:
       - uses: actions/checkout@v4
 
@@ -42,7 +42,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
           SHEET_ID: ${{ secrets.SHEET_ID }}
-          ONLY: ${{ github.event.inputs.only || 'github,firefox,scoring' }}
+          ONLY: ${{ github.event.inputs.only || 'github,firefox,snapshot,diff,scoring' }}
           FORCE: ${{ github.event.inputs.force || 'false' }}
         run: |
           if [ "$FORCE" = "true" ]; then

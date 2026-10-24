@@ -176,29 +176,34 @@ scripts/setup_sheet.py সব tab আর header auto তৈরি করবে�
 - [x] GitHub Actions workflow
 - [x] Apps Script Telegram alert
 - [x] README setup guide (service account বানানো, Sheet share করা, GitHub Secrets যোগ করা, Telegram bot token বসানো)
-- [x] Phase 1 test run (data Sheet এ আসছে; Firefox matching fix এর পর re-run বাকি)
-- [ ] Module C: Chrome Seeder
-- [ ] Module D: Weekly Snapshot
-- [ ] Module E: Diff Engine
+- [x] Phase 1 test run
+- [x] Module C: Chrome Seeder
+- [x] Module D: Weekly Snapshot
+- [x] Module E: Diff Engine
 
 ---
 
 ## 12. Current Status
 
-Phase: 1 সম্পন্ন (2026-10-24)। পরের কাজ: Telegram script install, GitHub repo push + Secrets, তারপর Phase 2 plan।
-তৃতীয় run 2026-10-24 (কড়া matching, --force): FIREFOX_ONLY 139, Alerts 190 (FIREFOX_ONLY 139 + MV2_FORK 51), error 0। আজ CWS ৩ বার scrape হইছে, এই সপ্তাহে আর --force না।
-নাম দিয়ে matching এর সীমা (heuristic আর বাড়াবো না):
-- uBlock Origin miss: Chrome এ "uBlock Origin: Facebook, YouTube & Sites" নামে একটা copycat আছে, নাম হুবহু মিলে যায়
-- কড়া নিয়মে কিছু false positive: NoScript Security Suite, Trusted Shops, Copyfish, LanguageTool
-- Phase 2 আইডিয়া: Firefox author আর Chrome developer নাম মিলিয়ে copycat/ভুল match ধরা (Module D detail page থেকে developer পাওয়া যাবে)
-Re-run 2026-10-24 (পুরানো FIREFOX_ONLY row মুছে, --force): FIREFOX_ONLY 188 → 101। কিন্তু containment নিয়মের কারণে uBlock Origin ভুলভাবে "uBlock" এর সাথে match হইছে। দ্বিতীয় fix: বাড়তি শব্দ অন্য নামে থাকতে হবে বা generic_words এ থাকতে হবে (config)। Sheet এ এখনো প্রথম fix এর data।
-Test run 2026-10-24 (gh account himelzobaer এর token দিয়ে): GitHub 103 repo (MV2 52, MV3 28, manifest পাওয়া যায়নি 23), Firefox 500 add-on, FIREFOX_ONLY 188, Alerts 239, Scored 603, error 0।
-সমস্যা পাওয়া গেছে: 188 FIREFOX_ONLY এর অনেকগুলা false positive (SponsorBlock, 1Password, Keepa...)। কারণ: লম্বা নামে CWS search 0 result দেয়, আর ratio-only matching। Fix: মূল নাম দিয়ে search, token containment match, "Lite/MV3" variant guard (21 test pass)। Sheet এর পুরানো FIREFOX_ONLY row গুলা এখনো পুরানো logic এর।
-শেষ কাজ (2026-10-24): Phase 1 এর সব code, 19টা mocked test (সব pass), আর real GitHub/AMO/CWS API দিয়ে in-memory sheet এ live smoke test (ঠিকমতো চলছে)।
-Structure এ যা যোগ হইছে: radar/main.py (পুরা pipeline), radar/chrome_search.py (CWS search parser, Phase 2 তেও কাজে লাগবে), .gitignore।
-Phase 1 alert flag: MV2_FORK (GitHub, MV2 + fork-friendly license), FIREFOX_ONLY (≥10K user)।
-পরের কাজ: user service account + SHEET_ID দিবে → setup_sheet.py → real Sheet এ Phase 1 test run → তারপর Phase 2 plan।
+Phase: 2 code সম্পন্ন (2026-10-24)। প্রথম আসল weekly snapshot + diff হবে সোমবার 2026-10-26 এর Actions run এ।
+Repo: github.com/himelzobaer/extension-radar (public)। Secrets: GOOGLE_SERVICE_ACCOUNT_JSON, SHEET_ID। Telegram: Script Properties এ বসানো, hourly trigger।
+
+শেষ কাজ (2026-10-24):
+- Phase 2: chrome_seeder.py, chrome_snapshot.py, diff_engine.py। মোট 27টা mocked test pass।
+- Seeder real Sheet এ চালানো হইছে: Chrome_IDs এ 978টা ID।
+- Snapshot + diff শুধু in-memory sheet এ test হইছে (20টা আসল ID: 7 ok, 13 removed, হাতে যাচাই করে দেখা গেছে সত্যিই removed)। Real Sheet এ snapshot চালানো হয়নি, যাতে 6 দিনের guard সোমবারের run আটকে না দেয়।
+- Structure এ যোগ: Chrome_IDs tab; Master এ chrome_id কলাম; Snapshots এ developer_id, error কলাম; Alerts এ detail কলাম।
+
+Phase 1 এর ফলাফল (2026-10-24): GitHub 103 repo (MV2 52), Firefox 500 add-on, FIREFOX_ONLY 139, MV2_FORK 51। আজ CWS search ৩ বার scrape হইছে, তাই সোমবারের firefox step guard এর কারণে skip হবে (এটা স্বাভাবিক)।
+
+পরের কাজ:
+- সোমবারের run এর পর Snapshots/Alerts/Logs যাচাই করা (snapshot এ 978 ID, প্রায় 75 মিনিট)
+- 2 সপ্তাহ পর প্রথম REMOVED/RATING_DROP/DEV_CHANGE flag যাচাই করা
+- Firefox author বনাম Chrome developer মিলিয়ে copycat match ধরা (uBlock Origin case)
+
 Known issues:
 - লোকাল Python 3.10, CI তে 3.11। Code দুইটাতেই চলে।
-- FIREFOX_ONLY নামের মিল দিয়ে ধরা হয়, তাই কিছু false positive আসে (যেমন "AdBlocker for Firefox")। Manual যাচাই করতে হবে।
-- CWS এ কোনো official API নাই। Canary query ("dark reader") থেকে result না আসলে সব item "unknown" হয়ে যায়, crash করে না।
+- FIREFOX_ONLY নামের মিল দিয়ে ধরা হয়, তাই কিছু ভুল থাকে। uBlock Origin miss হয় কারণ Chrome এ একই নামের copycat আছে। NoScript, Trusted Shops, Copyfish, LanguageTool false positive। Heuristic আর বাড়ানো হবে না।
+- CWS এ official API নাই। Search আর detail দুইটাতেই canary আছে (Dark Reader), parse fail করলে run থামে বা item "unknown" হয়।
+- Related ID থেকে প্রতি run এ সর্বোচ্চ 300টা নতুন ID যোগ হয়, তাই 2000 এ পৌঁছাতে প্রায় 4 সপ্তাহ লাগবে।
+- Snapshots tab প্রতি সপ্তাহে বড় হয়। Diff পুরা tab পড়ে, তাই কয়েক মাস পর পুরানো row archive করতে হবে।

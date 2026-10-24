@@ -8,7 +8,6 @@ from __future__ import annotations
 import argparse
 import logging
 import time
-from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import requests
@@ -76,7 +75,7 @@ def to_master(addon: dict[str, Any]) -> dict[str, Any]:
         "key": addon["slug"], "source": "firefox", "name": addon["name"], "url": addon["url"],
         "users_or_stars": addon["users"], "rating": addon["rating"],
         "last_updated": addon["last_updated"], "license": addon["license"],
-        "manifest_version": "", "flags": flags,
+        "manifest_version": "", "flags": flags, "chrome_id": addon.get("chrome_id", ""),
     }
 
 
@@ -95,12 +94,7 @@ def to_alert(addon: dict[str, Any], cfg: dict[str, Any], date: str) -> dict[str,
 
 def ran_recently(client: Any, cfg: dict[str, Any]) -> bool:
     """True if this module ran within firefox.min_days_between_runs (scrape guard)."""
-    last = client.last_run(MODULE)
-    if last is None:
-        return False
-    if last.tzinfo is None:
-        last = last.replace(tzinfo=timezone.utc)
-    return datetime.now(timezone.utc) - last < timedelta(days=float(cfg["firefox"]["min_days_between_runs"]))
+    return client.ran_within(MODULE, float(cfg["firefox"]["min_days_between_runs"]))
 
 
 def run(
@@ -143,10 +137,11 @@ def run(
             log.error("chrome search canary failed: parser may be broken, marking all unknown")
             note = "chrome canary failed; "
             for addon in addons:
-                addon.update(chrome_check="unknown", chrome_match="", ratio=0.0)
+                addon.update(chrome_check="unknown", chrome_match="", chrome_id="", ratio=0.0)
             errors += 1
 
-        only = [{k: v for k, v in a.items() if k != "ratio"} for a in addons if a["chrome_check"] == "not_found"]
+        only = [{k: v for k, v in a.items() if k not in ("ratio", "chrome_id")}
+                for a in addons if a["chrome_check"] == "not_found"]
         client.upsert("Firefox_Only", only, ts)
         client.upsert("Master", [to_master(a) for a in addons], ts)
         alerts = [x for x in (to_alert(a, cfg, ts[:10]) for a in addons) if x]

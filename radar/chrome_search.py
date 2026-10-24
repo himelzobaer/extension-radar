@@ -120,16 +120,23 @@ class ChromeSearcher:
         self.session = session
         self._first = True
 
-    def search(self, query: str) -> list[dict[str, str]]:
-        """Results for a query. Raises HttpError if the page can't be fetched."""
+    def fetch(self, url: str, passthrough_statuses: tuple[int, ...] = (404,)) -> requests.Response:
+        """GET a store page, with a random delay before every request except the first."""
         if not self._first:
             random_delay(float(self.cs["delay_min_seconds"]), float(self.cs["delay_max_seconds"]))
         self._first = False
-        url = self.cs["search_url"].format(query=quote(query, safe=""))
-        resp = request_with_retry(self.session, url, self.cfg)
+        return request_with_retry(self.session, url, self.cfg, passthrough_statuses=passthrough_statuses)
+
+    def list_page(self, url: str) -> list[dict[str, str]]:
+        """[{id, name}] from a search or category page. Raises HttpError if it can't be fetched."""
+        resp = self.fetch(url)
         if resp.status_code != 200:
             raise HttpError(url, resp.status_code)
         return parse_search_results(resp.text)
+
+    def search(self, query: str) -> list[dict[str, str]]:
+        """Results for a query. Raises HttpError if the page can't be fetched."""
+        return self.list_page(self.cs["search_url"].format(query=quote(query, safe="")))
 
     def parser_works(self) -> bool:
         """Canary: a very common query must return parsed results."""
@@ -140,16 +147,16 @@ class ChromeSearcher:
             return False
 
     def check(self, name: str) -> dict[str, Any]:
-        """{'chrome_check': found|not_found|unknown, 'chrome_match': 'name (id)', 'ratio': float}."""
+        """{'chrome_check': found|not_found|unknown, 'chrome_match': 'name (id)', 'chrome_id', 'ratio'}."""
         try:
             results = self.search(search_query(name, self.cs["strip_words"]))
         except HttpError as e:
             log.warning("chrome search failed for %r: %s", name, e)
-            return {"chrome_check": "unknown", "chrome_match": "", "ratio": 0.0}
+            return {"chrome_check": "unknown", "chrome_match": "", "chrome_id": "", "ratio": 0.0}
         match, ratio = best_match(name, results, self.cfg)
         if match and ratio >= float(self.cs["match_threshold"]):
             return {"chrome_check": "found", "chrome_match": f"{match['name']} ({match['id']})",
-                    "ratio": round(ratio, 3)}
+                    "chrome_id": match["id"], "ratio": round(ratio, 3)}
         return {"chrome_check": "not_found",
                 "chrome_match": f"closest: {match['name']} ({ratio:.2f})" if match else "",
-                "ratio": round(ratio, 3)}
+                "chrome_id": "", "ratio": round(ratio, 3)}
